@@ -1,9 +1,0 @@
-{
-  "name": "smartsathi-root",
-  "version": "1.0.0",
-  "description": "Root configuration for Railway deployment",
-  "scripts": {
-    "install": "cd server && npm install",
-    "start": "cd server && npm start"
-  }
-}
