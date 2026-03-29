@@ -24,7 +24,7 @@ const MODULE_OPTIONS = [
   { id: 'general',    label: 'General',             icon: '📱' },
 ];
 
-const CONF_COLOR  = { high: '#22C55E', medium: '#EAB308', low: '#EF4444' };
+const CONF_COLOR  = { high: '#28A745', medium: '#F57F17', low: '#DC3545' };
 const CONF_LABEL  = { high: 'उच्च विश्वास', medium: 'मध्यम विश्वास', low: 'कम विश्वास' };
 
 // ─── Instruction key for each language ───────────────────────────────────────
@@ -35,9 +35,9 @@ function getLangInstruction(result, lang) {
     mr: 'instruction_marathi',
     ta: 'instruction_tamil',
     en: 'instruction_english',
-    bn: 'instruction_hindi', // fallback to Hindi for Bengali
+    bn: 'instruction_bengali',
   };
-  return result[map[lang] || 'instruction_hindi'];
+  return result[map[lang]] || result['instruction_hindi'];
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -56,9 +56,9 @@ const S = {
     alignItems: 'center',
     gap: 10,
     padding: '12px 16px',
-    background: 'rgba(15,23,42,0.98)',
-    borderBottom: '1px solid var(--navy-border)',
-    backdropFilter: 'blur(12px)',
+    background: 'var(--bg-header)',
+    borderBottom: '1px solid var(--border-card)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
     position: 'sticky',
     top: 0,
     zIndex: 50,
@@ -66,7 +66,7 @@ const S = {
   },
   backBtn: {
     background: 'transparent',
-    border: '1px solid var(--navy-border)',
+    border: '1px solid var(--border-light)',
     borderRadius: 8,
     color: 'var(--text-secondary)',
     cursor: 'pointer',
@@ -99,14 +99,14 @@ const S = {
   },
   // Upload Zone
   uploadZone: {
-    border: '2px dashed var(--navy-border)',
+    border: '2px dashed var(--border-light)',
     borderRadius: 'var(--radius-lg)',
     padding: '36px 20px',
     textAlign: 'center',
     cursor: 'pointer',
     transition: 'all 0.22s ease',
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(12px)',
+    background: 'var(--bg-card)',
+    boxShadow: 'var(--shadow-card)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -140,8 +140,8 @@ const S = {
   },
   moduleSelect: {
     flex: '0 0 auto',
-    background: 'var(--navy-card)',
-    border: '1px solid var(--navy-border)',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border-light)',
     borderRadius: 10,
     color: 'var(--text-primary)',
     fontSize: 13,
@@ -153,8 +153,8 @@ const S = {
   questionInput: {
     flex: 1,
     minWidth: 200,
-    background: 'var(--navy-card)',
-    border: '1px solid var(--navy-border)',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border-light)',
     borderRadius: 10,
     color: 'var(--text-primary)',
     fontSize: 13,
@@ -164,14 +164,14 @@ const S = {
   },
   analyzeBtn: {
     padding: '10px 24px',
-    background: 'linear-gradient(135deg, #F97316, #C2410C)',
+    background: 'linear-gradient(135deg, var(--primary), #3d5a36)',
     border: 'none',
     borderRadius: 12,
     color: '#fff',
     fontSize: 14,
     fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 4px 20px rgba(249,115,22,0.4)',
+    boxShadow: 'var(--shadow-btn)',
     transition: 'all 0.2s ease',
     fontFamily: "'Noto Sans Devanagari', sans-serif",
     display: 'flex',
@@ -185,7 +185,7 @@ const S = {
     borderRadius: 'var(--radius-lg)',
     overflow: 'hidden',
     background: '#000',
-    border: '1px solid var(--navy-border)',
+    border: '1px solid var(--border-light)',
   },
   previewImg: {
     display: 'block',
@@ -226,8 +226,8 @@ const S = {
   },
   // Safety alert
   safetyAlert: {
-    background: 'rgba(239,68,68,0.12)',
-    border: '1.5px solid rgba(239,68,68,0.45)',
+    background: 'var(--danger-bg)',
+    border: '1.5px solid var(--danger-border)',
     borderRadius: 'var(--radius-md)',
     padding: '16px 18px',
     display: 'flex',
@@ -237,7 +237,7 @@ const S = {
   safetyTitle: {
     fontSize: 15,
     fontWeight: 700,
-    color: '#FCA5A5',
+    color: 'var(--danger)',
     display: 'flex',
     alignItems: 'center',
     gap: 8,
@@ -245,7 +245,7 @@ const S = {
   },
   safetyMsg: {
     fontSize: 13,
-    color: '#FCA5A5',
+    color: 'var(--danger)',
     fontFamily: "'Noto Sans Devanagari', sans-serif",
     lineHeight: 1.6,
   },
@@ -267,8 +267,8 @@ const S = {
   },
   // Voice script
   voiceBar: {
-    background: 'rgba(34,197,94,0.08)',
-    border: '1px solid rgba(34,197,94,0.2)',
+    background: 'var(--success-bg)',
+    border: '1px solid var(--success-border)',
     borderRadius: 'var(--radius-md)',
     padding: '14px 16px',
     display: 'flex',
@@ -277,10 +277,10 @@ const S = {
   },
   voicePlayBtn: {
     width: 38, height: 38,
-    background: 'rgba(34,197,94,0.15)',
-    border: '1.5px solid rgba(34,197,94,0.4)',
+    background: 'rgba(40,167,69,0.12)',
+    border: '1.5px solid rgba(40,167,69,0.3)',
     borderRadius: '50%',
-    color: '#86EFAC',
+    color: 'var(--success)',
     fontSize: 16,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -289,7 +289,7 @@ const S = {
   },
   voiceText: {
     fontSize: 13,
-    color: '#86EFAC',
+    color: 'var(--success)',
     fontFamily: "'Noto Sans Devanagari', sans-serif",
     lineHeight: 1.7,
     flex: 1,
@@ -309,19 +309,19 @@ const S = {
     marginBottom: 2,
   },
   stepCard: {
-    background: 'var(--glass-bg)',
-    border: '1px solid var(--glass-border)',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border-card)',
     borderRadius: 'var(--radius-md)',
     padding: '14px 16px',
     display: 'flex',
     gap: 14,
     alignItems: 'flex-start',
-    backdropFilter: 'blur(12px)',
+    boxShadow: 'var(--shadow-card)',
     transition: 'border-color 0.18s ease',
   },
   stepNum: {
     width: 28, height: 28,
-    background: 'linear-gradient(135deg, #F97316, #C2410C)',
+    background: 'var(--primary)',
     borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 13,
@@ -379,8 +379,8 @@ const S = {
   },
   // OCR box
   ocrBox: {
-    background: 'rgba(30,41,59,0.6)',
-    border: '1px solid var(--navy-border)',
+    background: 'rgba(74,103,65,0.04)',
+    border: '1px solid var(--border-light)',
     borderRadius: 'var(--radius-sm)',
     padding: '10px 14px',
     fontSize: 12,
@@ -532,12 +532,12 @@ export default function ScreenshotAnalyzer({ onBack, language = 'hi', onLanguage
           className="vge-step-card"
           style={{
             ...S.stepCard,
-            borderColor: step.is_warning ? 'rgba(239,68,68,0.35)' : 'var(--glass-border)',
+            borderColor: step.is_warning ? 'var(--danger-border)' : 'var(--border-card)',
           }}
         >
           <div style={{
             ...S.stepNum,
-            background: step.is_warning ? '#EF4444' : 'linear-gradient(135deg,#F97316,#C2410C)',
+            background: step.is_warning ? 'var(--danger)' : 'var(--primary)',
           }}>
             {step.step_number}
           </div>
@@ -586,8 +586,8 @@ export default function ScreenshotAnalyzer({ onBack, language = 'hi', onLanguage
             className="vge-upload-zone"
             style={{
               ...S.uploadZone,
-              borderColor: isDragging ? '#F97316' : 'var(--navy-border)',
-              background: isDragging ? 'rgba(249,115,22,0.07)' : 'var(--glass-bg)',
+              borderColor: isDragging ? 'var(--primary)' : 'var(--border-light)',
+              background: isDragging ? 'rgba(74,103,65,0.05)' : 'var(--bg-card)',
               transform: isDragging ? 'scale(1.01)' : 'scale(1)',
             }}
             onDrop={handleDrop}
@@ -667,7 +667,7 @@ export default function ScreenshotAnalyzer({ onBack, language = 'hi', onLanguage
               {isAnalyzing && (
                 <div style={{
                   position: 'absolute', inset: 0,
-                  background: 'rgba(15,23,42,0.65)',
+                  background: 'rgba(255,255,255,0.8)',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
                   gap: 12,

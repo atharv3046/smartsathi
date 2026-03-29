@@ -111,8 +111,8 @@ export const getModules = (language) => {
       subtitle: t.upi.subtitle,
       description: t.upi.description,
       greeting: t.upi.greeting,
-      color: '#10B981',
-      gradient: 'linear-gradient(135deg, #10B981, #059669)',
+      color: '#4A6741',
+      gradient: 'linear-gradient(135deg, #4A6741, #3d5a36)',
     },
     scam: {
       id: 'scam',
@@ -121,8 +121,8 @@ export const getModules = (language) => {
       subtitle: t.scam.subtitle,
       description: t.scam.description,
       greeting: t.scam.greeting,
-      color: '#EF4444',
-      gradient: 'linear-gradient(135deg, #EF4444, #DC2626)',
+      color: '#DC3545',
+      gradient: 'linear-gradient(135deg, #DC3545, #c82333)',
     },
     digilocker: {
       id: 'digilocker',
@@ -131,8 +131,8 @@ export const getModules = (language) => {
       subtitle: t.digilocker.subtitle,
       description: t.digilocker.description,
       greeting: t.digilocker.greeting,
-      color: '#6366F1',
-      gradient: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+      color: '#6984A9',
+      gradient: 'linear-gradient(135deg, #6984A9, #567a9a)',
     },
   };
 };

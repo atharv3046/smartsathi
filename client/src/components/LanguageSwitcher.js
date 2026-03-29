@@ -1,46 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export const LANGUAGES = {
-  hi: {
-    code: 'hi',
-    name: 'हिंदी',
-    englishName: 'Hindi',
-    flag: '🇮🇳',
-    script: 'Devanagari',
-    nativeName: 'हिंदी',
-  },
-  mr: {
-    code: 'mr',
-    name: 'मराठी',
-    englishName: 'Marathi',
-    flag: '🇮🇳',
-    script: 'Devanagari',
-    nativeName: 'मराठी',
-  },
-  ta: {
-    code: 'ta',
-    name: 'தமிழ்',
-    englishName: 'Tamil',
-    flag: '🇮🇳',
-    script: 'Tamil',
-    nativeName: 'தமிழ்',
-  },
-  bn: {
-    code: 'bn',
-    name: 'বাংলা',
-    englishName: 'Bengali',
-    flag: '🇮🇳',
-    script: 'Bengali',
-    nativeName: 'বাংলা',
-  },
-  en: {
-    code: 'en',
-    name: 'English',
-    englishName: 'English',
-    flag: '🇮🇳',
-    script: 'Latin',
-    nativeName: 'English',
-  },
+  hi: { code: 'hi', name: 'हिंदी',  englishName: 'Hindi',   script: 'Devanagari', nativeName: 'हिंदी'  },
+  mr: { code: 'mr', name: 'मराठी', englishName: 'Marathi',  script: 'Devanagari', nativeName: 'मराठी' },
+  ta: { code: 'ta', name: 'தமிழ்', englishName: 'Tamil',    script: 'Tamil',      nativeName: 'தமிழ்' },
+  bn: { code: 'bn', name: 'বাংলা', englishName: 'Bengali',  script: 'Bengali',    nativeName: 'বাংলা'  },
+  en: { code: 'en', name: 'English',englishName: 'English',  script: 'Latin',      nativeName: 'English'},
 };
 
 // Per-language UI strings
@@ -56,7 +21,7 @@ export const UI_STRINGS = {
     tagline: 'आपका AI डिजिटल साथी',
     confusionBtn: '🤔 मुझे समझ नहीं आया',
     sending: 'भेज रहे हैं...',
-    placeholder: 'यहाँ अपना सवाल लिखें...',
+    placeholder: 'अपना संदेश लिखें...',
     subject: 'विषय:',
     language: 'भाषा:',
     footer: 'SmartSathi · AI-Powered · Made in India 🇮🇳',
@@ -120,86 +85,182 @@ export const UI_STRINGS = {
     tagline: 'Your AI Digital Companion',
     confusionBtn: '🤔 I do not understand',
     sending: 'Sending...',
-    placeholder: 'Type your question here...',
+    placeholder: 'Type your message here...',
     subject: 'Subject:',
     language: 'Language:',
     footer: 'SmartSathi · AI-Powered · Made in India 🇮🇳',
   },
 };
 
-const styles = {
-  bar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--text-muted)',
-    flexShrink: 0,
-    marginRight: 2,
-  },
-  langBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 5,
-    padding: '4px 11px',
-    borderRadius: 999,
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: '1.5px solid transparent',
-    transition: 'all 0.18s ease',
-    whiteSpace: 'nowrap',
-    background: 'transparent',
-    flexShrink: 0,
-  },
-};
+// ─── Mobile-friendly compact dropdown version ──────────────────────────────
+function CompactDropdown({ language, onSwitch }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = LANGUAGES[language] || LANGUAGES.hi;
 
-export default function LanguageSwitcher({ language, onSwitch, showLabel = true }) {
-  const [hovered, setHovered] = useState(null);
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('touchstart', handleClick);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('touchstart', handleClick);
+    };
+  }, []);
 
   return (
-    <div style={styles.bar}>
+    <div ref={ref} style={{ position: 'relative' }}>
+      {/* Trigger button */}
+      <button
+        id="lang-dropdown-btn"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          padding: '6px 12px',
+          borderRadius: 999,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+          border: '1.5px solid var(--primary-light)',
+          background: 'rgba(74,103,65,0.08)',
+          color: 'var(--primary)',
+          whiteSpace: 'nowrap',
+          fontFamily: "'Noto Sans Devanagari', sans-serif",
+          transition: 'all 0.18s ease',
+        }}
+      >
+        {current.nativeName}
+        <span style={{ fontSize: 10, opacity: 0.7, lineHeight: 1 }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            right: 0,
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-card)',
+            borderRadius: 14,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+            minWidth: 150,
+            zIndex: 9999,
+            overflow: 'hidden',
+            animation: 'fadeIn 0.15s ease',
+          }}
+        >
+          {Object.values(LANGUAGES).map(lang => (
+            <button
+              key={lang.code}
+              id={`lang-btn-${lang.code}`}
+              onClick={() => { onSwitch(lang.code); setOpen(false); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '11px 16px',
+                background: lang.code === language ? 'rgba(74,103,65,0.08)' : 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--border-light)',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: lang.code === language ? 700 : 500,
+                color: lang.code === language ? 'var(--primary)' : 'var(--text-secondary)',
+                fontFamily: "'Noto Sans Devanagari', sans-serif",
+                textAlign: 'left',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              <span>{lang.nativeName}</span>
+              {lang.code === language && (
+                <span style={{ color: 'var(--primary)', fontSize: 14 }}>✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component: pill row on desktop, dropdown on mobile ───────────────
+export default function LanguageSwitcher({ language, onSwitch, showLabel = true, compact = false }) {
+  const [hovered, setHovered] = useState(null);
+
+  // Always use compact dropdown when compact=true or on mobile screens
+  if (compact) {
+    return <CompactDropdown language={language} onSwitch={onSwitch} />;
+  }
+
+  // Full pill row (desktop)
+  const langKeys = Object.keys(LANGUAGES);
+  const activeIndex = langKeys.indexOf(language) === -1 ? 0 : langKeys.indexOf(language);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap' }}>
       {showLabel && (
-        <span style={styles.label}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+          textTransform: 'uppercase', color: 'var(--text-muted)', flexShrink: 0, marginRight: 2,
+        }} className="hindi">
           {UI_STRINGS[language]?.language || 'भाषा:'}
         </span>
       )}
-      {Object.values(LANGUAGES).map((lang) => {
-        const isActive = lang.code === language;
-        return (
-          <button
-            key={lang.code}
-            id={`lang-btn-${lang.code}`}
-            style={{
-              ...styles.langBtn,
-              background: isActive
-                ? 'rgba(249,115,22,0.15)'
-                : hovered === lang.code
-                ? 'rgba(255,255,255,0.05)'
-                : 'transparent',
-              borderColor: isActive
-                ? 'rgba(249,115,22,0.5)'
-                : hovered === lang.code
-                ? 'var(--navy-border)'
-                : 'transparent',
-              color: isActive ? '#F97316' : 'var(--text-secondary)',
-              transform: isActive ? 'scale(1.02)' : 'scale(1)',
-            }}
-            onClick={() => onSwitch(lang.code)}
-            onMouseEnter={() => setHovered(lang.code)}
-            onMouseLeave={() => setHovered(null)}
-            title={lang.englishName}
-          >
-            {lang.nativeName}
-          </button>
-        );
-      })}
+
+      {/* Segmented Control Container */}
+      <div style={{
+        display: 'flex', position: 'relative',
+        background: 'var(--bg-card)',
+        padding: 4, borderRadius: 999, border: '1px solid var(--border-light)'
+      }}>
+        {/* Sliding background pill */}
+        <div style={{
+          position: 'absolute',
+          top: 4, bottom: 4,
+          left: 4,
+          width: `calc((100% - 8px) / ${langKeys.length})`,
+          transform: `translateX(${activeIndex * 100}%)`,
+          background: 'rgba(74,103,65,0.1)',
+          border: '1.5px solid var(--primary-light)',
+          borderRadius: 999,
+          transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          zIndex: 0,
+        }} />
+
+        {/* Buttons */}
+        {Object.values(LANGUAGES).map((lang) => {
+          const isActive = lang.code === language;
+          return (
+            <button
+              key={lang.code}
+              id={`lang-btn-${lang.code}`}
+              style={{
+                position: 'relative', zIndex: 1,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: '4px 11px', borderRadius: 999, fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
+                cursor: 'pointer', border: '1.5px solid transparent',
+                transition: 'color 0.2s ease, transform 0.2s ease',
+                whiteSpace: 'nowrap', background: 'transparent',
+                color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                fontFamily: "'Noto Sans Devanagari', sans-serif",
+                flex: 1,
+              }}
+              onClick={() => onSwitch(lang.code)}
+              title={lang.englishName}
+            >
+              {lang.nativeName}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

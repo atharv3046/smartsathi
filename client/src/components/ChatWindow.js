@@ -9,9 +9,9 @@ import { getModules } from '../data/modulesData';
 const LANG_STRINGS = {
   hi: {
     confusedMsg:  'मुझे समझ नहीं आया। और आसान तरीके से समझाएं।',
-    serverErr:    '⚠️ Server से जुड़ने में दिक्कत हुई। कृपया दोबारा कोशिश करें।',
+    serverErr:    '⚠️ Server से जुड़ने में दिक्कत हुई। कृपया दोबारा कोशिश करें।',
     genericErr:   'कुछ गलत हो गया। दोबारा कोशिश करें।',
-    speaking:     '🔊 आवाज़ चल रही है...',
+    speaking:     '🔊 आवाज़ चल रही है...',
     stopBtn:      '■ रोकें',
     listening:    'सुन रहा हूँ... बोलें, फिर mic button दबाएं ✅',
     askByVoice:   'बोलकर पूछें',
@@ -38,10 +38,10 @@ const LANG_STRINGS = {
     sendBtn:      'அனுப்பு',
   },
   bn: {
-    confusedMsg:  'আমি বুঝিনি। আরও সহজে বুঝিয়ে বলুন।',
+    confusedMsg:  'আমি বুঝিনি। আরও সহজে বুঝিয়ে বলুন।',
     serverErr:    '⚠️ Server এর সাথে সংযোগে সমস্যা। আবার চেষ্টা করুন।',
-    genericErr:   'কিছু ভুল হয়েছে। আবার চেষ্টা করুন।',
-    speaking:     '🔊 আওয়াজ চলছে...',
+    genericErr:   'কিছু ভুল হয়েছে। আবার চেষ্টা করুন।',
+    speaking:     '🔊 আওয়াজ চলছে...',
     stopBtn:      '■ থামুন',
     listening:    'শুনছি... বলুন, তারপর mic button চাপুন ✅',
     askByVoice:   'বলে জিজ্ঞেস করুন',
@@ -62,6 +62,28 @@ function getLang(language) {
   return LANG_STRINGS[language] || LANG_STRINGS.hi;
 }
 
+// Responsive hook
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return width;
+}
+
+// ── Parse [VIDEO: ...] tag from AI reply ────────────────────────────
+function parseReply(raw) {
+  const match = raw.match(/\[VIDEO:\s*(.+?)\]/i);
+  const text = raw.replace(/\[VIDEO:.*?\]/gi, '').trim();
+  return { text, videoQuery: match ? match[1].trim() : null };
+}
+
+async function fetchYouTubeVideo(query, lang) { // eslint-disable-line no-unused-vars
+  return null;
+}
+
 function getTime() {
   return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
@@ -72,6 +94,7 @@ const styles = {
     flexDirection: 'column',
     height: '100vh',
     overflow: 'hidden',
+    background: 'var(--bg-page)',
   },
   header: {
     flexShrink: 0,
@@ -79,13 +102,13 @@ const styles = {
     alignItems: 'center',
     gap: 12,
     padding: '12px 16px',
-    background: 'rgba(15, 23, 42, 0.98)',
-    borderBottom: '1px solid var(--navy-border)',
-    backdropFilter: 'blur(12px)',
+    background: 'var(--bg-header)',
+    borderBottom: '1px solid var(--border-card)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
   },
   backBtn: {
     background: 'transparent',
-    border: '1px solid var(--navy-border)',
+    border: '1px solid var(--border-light)',
     borderRadius: 8,
     color: 'var(--text-secondary)',
     cursor: 'pointer',
@@ -117,11 +140,11 @@ const styles = {
   onlineDot: {
     width: 8,
     height: 8,
-    background: '#22C55E',
+    background: 'var(--success)',
     borderRadius: '50%',
     display: 'inline-block',
     marginRight: 5,
-    boxShadow: '0 0 6px #22C55E',
+    boxShadow: '0 0 6px rgba(40,167,69,0.4)',
   },
   messagesArea: {
     flex: 1,
@@ -130,40 +153,42 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
+    background: 'var(--bg-page)',
   },
   confusionBanner: {
     flexShrink: 0,
     display: 'flex',
     justifyContent: 'center',
     padding: '8px 16px',
-    background: 'rgba(234,179,8,0.06)',
-    borderTop: '1px solid rgba(234,179,8,0.15)',
+    background: 'var(--bg-header)',
+    borderTop: '1px solid var(--border-card)',
   },
   confusionBtn: {
-    background: 'rgba(234,179,8,0.12)',
-    border: '1px solid rgba(234,179,8,0.3)',
+    background: 'var(--primary)',
+    border: 'none',
     borderRadius: 999,
-    color: '#FDE047',
+    color: '#fff',
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
-    padding: '6px 18px',
+    padding: '8px 22px',
     transition: 'all 0.18s ease',
     fontFamily: "'Noto Sans Devanagari', sans-serif",
+    boxShadow: '0 2px 6px rgba(74,103,65,0.2)',
   },
   inputRow: {
     flexShrink: 0,
     display: 'flex',
     gap: 8,
     padding: '10px 14px 14px',
-    background: 'rgba(15, 23, 42, 0.98)',
-    borderTop: '1px solid var(--navy-border)',
+    background: 'var(--bg-header)',
+    borderTop: '1px solid var(--border-card)',
     alignItems: 'flex-end',
   },
   textarea: {
     flex: 1,
-    background: 'var(--navy-card)',
-    border: '1px solid var(--navy-border)',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border-light)',
     borderRadius: 16,
     color: 'var(--text-primary)',
     fontSize: 14,
@@ -178,7 +203,7 @@ const styles = {
   sendBtn: {
     width: 42,
     height: 42,
-    background: 'linear-gradient(135deg, #F97316, #C2410C)',
+    background: 'var(--primary)',
     border: 'none',
     borderRadius: '50%',
     color: '#fff',
@@ -189,7 +214,7 @@ const styles = {
     justifyContent: 'center',
     flexShrink: 0,
     transition: 'all 0.18s ease',
-    boxShadow: '0 2px 12px rgba(249,115,22,0.4)',
+    boxShadow: '0 2px 8px rgba(74,103,65,0.3)',
   },
   confusionLevelBag: {
     display: 'flex',
@@ -201,7 +226,6 @@ const styles = {
     textAlign: 'center',
     fontFamily: "'Noto Sans Devanagari', sans-serif",
   },
-  // Voice status bar (listening)
   voiceStatusBar: {
     flexShrink: 0,
     display: 'flex',
@@ -209,13 +233,12 @@ const styles = {
     justifyContent: 'center',
     gap: 10,
     padding: '6px 16px',
-    background: 'rgba(239,68,68,0.06)',
-    borderTop: '1px solid rgba(239,68,68,0.15)',
+    background: 'var(--danger-bg)',
+    borderTop: '1px solid var(--danger-border)',
     fontSize: 12,
     fontFamily: "'Noto Sans Devanagari', sans-serif",
-    color: '#FCA5A5',
+    color: 'var(--danger)',
   },
-  // TTS speaking bar
   speakingBar: {
     flexShrink: 0,
     display: 'flex',
@@ -223,20 +246,20 @@ const styles = {
     justifyContent: 'space-between',
     gap: 12,
     padding: '8px 16px',
-    background: 'rgba(34,197,94,0.08)',
-    borderTop: '1px solid rgba(34,197,94,0.25)',
+    background: 'var(--success-bg)',
+    borderTop: '1px solid var(--success-border)',
     fontSize: 13,
     fontFamily: "'Noto Sans Devanagari', sans-serif",
-    color: '#86EFAC',
+    color: 'var(--success)',
   },
   stopSpeakBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    background: 'rgba(239,68,68,0.18)',
-    border: '1.5px solid rgba(239,68,68,0.5)',
+    background: 'var(--danger-bg)',
+    border: '1.5px solid var(--danger-border)',
     borderRadius: 999,
-    color: '#FCA5A5',
+    color: 'var(--danger)',
     cursor: 'pointer',
     fontSize: 13,
     fontWeight: 700,
@@ -270,9 +293,13 @@ export default function ChatWindow({
   language = 'hi',
   onLanguageSwitch,
 }) {
+  const windowWidth = useWindowWidth();
+  const isMobile = windowWidth < 640;
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
   const [displayMessages, setDisplayMessages] = useState(() =>
     messageHistory.map((msg, i) => ({ ...msg, id: i, time: getTime() }))
   );
@@ -287,10 +314,7 @@ export default function ChatWindow({
     setInput(text);
   }, []);
 
-  const handleVoiceEnd = useCallback(() => {
-    // Auto-send if transcript is long enough (user finished speaking)
-    // We rely on the user pressing send or enter for now
-  }, []);
+  const handleVoiceEnd = useCallback(() => {}, []);
 
   const {
     isListening,
@@ -305,28 +329,23 @@ export default function ChatWindow({
     stopSpeaking,
   } = useVoice({ language, onTranscript: handleVoiceTranscript, onEnd: handleVoiceEnd });
 
-  // Update input when voice transcript comes in
   useEffect(() => {
     if (transcript) {
       setInput(transcript);
     }
   }, [transcript]);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayMessages, isLoading]);
 
-  // Sync display messages if messageHistory is modified from outside (e.g., language change or module switch)
   useEffect(() => {
     setDisplayMessages((prev) => {
-      // If history was reset to exactly 1 message (module switched)
       if (messageHistory.length === 1 && messageHistory[0].role === 'assistant') {
          if (prev.length !== 1 || prev[0].content !== messageHistory[0].content) {
             return messageHistory.map((msg, i) => ({ ...msg, id: Date.now() + i, time: getTime() }));
          }
       }
-      // If language was changed mid-chat, translating the first greeting message
       if (messageHistory.length > 0 && prev.length > 0 && prev[0].content !== messageHistory[0].content) {
          const newDisp = [...prev];
          newDisp[0] = { ...newDisp[0], content: messageHistory[0].content };
@@ -336,8 +355,8 @@ export default function ChatWindow({
     });
   }, [messageHistory]);
 
-  const addMessage = useCallback((role, content) => {
-    const msg = { role, content, id: Date.now(), time: getTime() };
+  const addMessage = useCallback((role, content, video = null) => {
+    const msg = { role, content, video, id: Date.now(), time: getTime() };
     setDisplayMessages((prev) => [...prev, msg]);
     return { role, content };
   }, []);
@@ -362,10 +381,16 @@ export default function ChatWindow({
         }),
       });
       const data = await res.json();
-      const reply = data.reply || data.error || getLang(language).genericErr;
-      addMessage('assistant', reply);
+      const rawReply = data.reply || data.error || getLang(language).genericErr;
+
+      // Parse text + optional video query from AI reply
+      const { text: reply, videoQuery } = parseReply(rawReply);
+
+      // Store the query string directly — VideoCard builds the embed URL itself (no API key needed)
+      const video = (videoEnabled && videoQuery) ? videoQuery : null;
+
+      addMessage('assistant', reply, video);
       setMessageHistory((prev) => [...prev, { role: 'assistant', content: reply }]);
-      // Auto-TTS the reply
       if (ttsEnabled && hasSpeechSynthesis) {
         speak(reply);
       }
@@ -374,8 +399,8 @@ export default function ChatWindow({
     } finally {
       setIsLoading(false);
     }
-  }, [messageHistory, module, confusionLevel, language, ttsEnabled, hasSpeechSynthesis,
-      addMessage, setMessageHistory, stopListening, speak]);
+  }, [messageHistory, module, confusionLevel, language, ttsEnabled, videoEnabled,
+      hasSpeechSynthesis, addMessage, setMessageHistory, stopListening, speak]);
 
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
@@ -385,10 +410,8 @@ export default function ChatWindow({
     await sendMessageCore(trimmed);
   }, [input, isLoading, sendMessageCore]);
 
-  // Voice send: when mic button pressed again after transcript filled
   const handleMicClick = useCallback(() => {
     if (isListening) {
-      // Stop listening — auto-send if there's transcript
       stopListening();
       const trimmed = input.trim();
       if (trimmed && !isLoading) {
@@ -397,7 +420,7 @@ export default function ChatWindow({
         sendMessageCore(trimmed);
       }
     } else {
-      stopSpeaking(); // Stop any TTS before listening
+      stopSpeaking();
       setInput('');
       toggleListening();
     }
@@ -423,8 +446,10 @@ export default function ChatWindow({
         }),
       });
       const data = await res.json();
-      const reply = data.reply || data.error || getLang(language).genericErr;
-      addMessage('assistant', reply);
+      const rawReply = data.reply || data.error || getLang(language).genericErr;
+      const { text: reply, videoQuery } = parseReply(rawReply);
+      const video = (videoEnabled && videoQuery) ? videoQuery : null;
+      addMessage('assistant', reply, video);
       setMessageHistory((prev) => [...prev, { role: 'assistant', content: reply }]);
       if (ttsEnabled && hasSpeechSynthesis) speak(reply);
     } catch {
@@ -433,7 +458,7 @@ export default function ChatWindow({
       setIsLoading(false);
     }
   }, [onConfusion, addMessage, messageHistory, module, confusionLevel, language,
-      ttsEnabled, hasSpeechSynthesis, setMessageHistory, speak]);
+      ttsEnabled, videoEnabled, hasSpeechSynthesis, setMessageHistory, speak]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -449,7 +474,6 @@ export default function ChatWindow({
   };
 
   const toggleTts = () => {
-    // Header button only toggles TTS on/off (stop is via the speaking bar)
     if (isSpeaking) stopSpeaking();
     setTtsEnabled((prev) => !prev);
   };
@@ -457,24 +481,27 @@ export default function ChatWindow({
   return (
     <div style={styles.window}>
       {/* Header */}
-      <div style={styles.header}>
-        <button style={styles.backBtn} onClick={onBack} id="chat-back-btn" title="वापस जाएं">←</button>
-        <div
-          style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: mod?.gradient || 'var(--saffron)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, flexShrink: 0,
-          }}
-        >
-          {mod?.icon}
-        </div>
+      <div style={{
+        ...styles.header,
+        padding: isMobile ? '8px 10px' : '12px 16px',
+        gap: isMobile ? 6 : 12,
+      }}>
+        <button style={{
+          ...styles.backBtn,
+          width: isMobile ? 32 : 36,
+          height: isMobile ? 32 : 36,
+          fontSize: isMobile ? 16 : 18,
+        }} onClick={onBack} id="chat-back-btn" title="वापस जाएं">←</button>
         <div style={styles.headerInfo}>
-          <div style={styles.headerTitle}>
-            <span style={styles.onlineDot} />
-            SmartSathi AI
+          <div style={{
+            ...styles.headerTitle,
+            fontSize: isMobile ? 13 : 15,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {mod?.icon} {mod?.title}
           </div>
-          <div style={styles.headerSub}>{mod?.title} — {mod?.subtitle}</div>
         </div>
 
         {/* Screenshot Analyzer shortcut */}
@@ -482,42 +509,65 @@ export default function ChatWindow({
           <button
             style={{
               background: 'transparent',
-              border: '1.5px solid transparent',
+              border: '1.5px solid var(--border-light)',
               borderRadius: 8,
               cursor: 'pointer',
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               color: 'var(--text-muted)',
-              padding: '4px 7px',
+              padding: isMobile ? '3px 5px' : '4px 7px',
               transition: 'all 0.18s ease',
               display: 'flex', alignItems: 'center',
             }}
             onClick={onScreenshotAnalyzer}
             id="chat-screenshot-btn"
             title="Screenshot से मदद लें"
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#F97316'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.4)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'transparent'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'var(--primary-light)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
           >
             📸
           </button>
         )}
 
-        {/* TTS enable/disable toggle (header — NOT the stop button) */}
+        {/* TTS toggle */}
         {hasSpeechSynthesis && (
           <button
             className={`tts-btn ${ttsEnabled ? 'active' : ''}`}
             onClick={toggleTts}
             id="tts-toggle-btn"
-            title={ttsEnabled ? getLang(language).speaking + ' — ' + getLang(language).stopBtn : getLang(language).stopBtn}
+            title={ttsEnabled ? getLang(language).speaking : getLang(language).stopBtn}
           >
             {ttsEnabled ? '🔈' : '🔇'}
           </button>
         )}
+
+        {/* Video toggle */}
+        <button
+          onClick={() => setVideoEnabled(v => !v)}
+          id="video-toggle-btn"
+          title={videoEnabled ? 'Turn off video suggestions' : 'Turn on video suggestions'}
+          style={{
+            background: 'transparent',
+            border: '1.5px solid var(--border-light)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: isMobile ? 13 : 15,
+            color: videoEnabled ? 'var(--primary)' : 'var(--text-muted)',
+            padding: isMobile ? '3px 5px' : '4px 7px',
+            transition: 'all 0.18s ease',
+            display: 'flex',
+            alignItems: 'center',
+            borderColor: videoEnabled ? 'var(--primary-light)' : 'var(--border-light)',
+          }}
+        >
+          {videoEnabled ? '📺' : '📵'}
+        </button>
 
         {/* Language switcher */}
         <LanguageSwitcher
           language={language}
           onSwitch={onLanguageSwitch}
           showLabel={false}
+          compact={isMobile}
         />
       </div>
 
@@ -526,7 +576,7 @@ export default function ChatWindow({
 
       {/* Confusion level indicator */}
       {confusionLevel > 0 && getConfusionLabel(language, confusionLevel) && (
-        <div style={{ ...styles.confusionLevelBag, background: 'rgba(234,179,8,0.07)' }}>
+        <div style={{ ...styles.confusionLevelBag, background: 'var(--warning-bg)' }}>
           {getConfusionLabel(language, confusionLevel)}
         </div>
       )}
@@ -539,13 +589,13 @@ export default function ChatWindow({
             role={msg.role}
             content={msg.content}
             time={msg.time}
+            video={msg.video}
             onSpeak={hasSpeechSynthesis ? () => speak(msg.content) : null}
             isGreeting={index === 0}
             onSuggestionClick={(text) => {
               setInput(text);
               if (textareaRef.current) {
                 textareaRef.current.focus();
-                // We'll let them click send manually, or just place it in input
               }
             }}
           />
@@ -554,13 +604,14 @@ export default function ChatWindow({
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <div style={{
               width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--navy-card)',
-              border: '1.5px solid rgba(249,115,22,0.4)',
+              background: 'var(--bg-card)',
+              border: '1.5px solid var(--primary-light)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
             }}>🤖</div>
             <div style={{
-              background: 'var(--navy-card)', border: '1px solid var(--navy-border)',
+              background: 'var(--bg-card)', border: '1px solid var(--border-card)',
               borderRadius: '18px 18px 18px 4px', padding: '12px 16px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
             }}>
               <div className="typing-dots">
                 <span /><span /><span />
@@ -571,11 +622,11 @@ export default function ChatWindow({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* TTS Speaking — prominent stop bar */}
+      {/* TTS Speaking bar */}
       {isSpeaking && (
         <div style={styles.speakingBar}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="voice-waveform" style={{ '--wave-color': '#4ADE80' }}>
+            <div className="voice-waveform" style={{ '--wave-color': 'var(--success)' }}>
               <span /><span /><span /><span /><span />
             </div>
             <span>{getLang(language).speaking}</span>
@@ -608,7 +659,7 @@ export default function ChatWindow({
       {voiceError && (
         <div style={{
           flexShrink: 0, padding: '6px 16px', textAlign: 'center',
-          fontSize: 12, color: '#FCA5A5', background: 'rgba(239,68,68,0.06)',
+          fontSize: 12, color: 'var(--danger)', background: 'var(--danger-bg)',
           fontFamily: "'Noto Sans Devanagari', sans-serif",
         }}>
           ⚠️ {voiceError}
@@ -618,6 +669,7 @@ export default function ChatWindow({
       {/* Confusion Button */}
       <div style={styles.confusionBanner}>
         <button
+          className="confusion-btn-bounce"
           style={styles.confusionBtn}
           onClick={handleConfusionClick}
           disabled={isLoading}
@@ -647,7 +699,7 @@ export default function ChatWindow({
           id="chat-input"
           style={{
             ...styles.textarea,
-            borderColor: isListening ? 'rgba(239,68,68,0.4)' : 'var(--navy-border)',
+            borderColor: isListening ? 'var(--danger-border)' : 'var(--border-light)',
           }}
           placeholder={isListening ? getLang(language).listening : ui.placeholder}
           value={input}
@@ -655,6 +707,8 @@ export default function ChatWindow({
           onKeyDown={handleKeyDown}
           rows={1}
           disabled={isLoading}
+          onFocus={e => e.target.style.borderColor = 'var(--primary-light)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border-light)'}
         />
         <button
           style={{

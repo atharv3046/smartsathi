@@ -41,7 +41,9 @@ function getVoicesAsync() {
 /** Pick the best available voice for the target lang code (e.g. 'hi-IN') */
 function pickVoice(voices, langCode) {
   if (!voices || voices.length === 0) return null;
-  
+
+  const prefix = langCode.split('-')[0];
+
   // 1. Prioritize Google's cloud voices for the target language (best quality)
   let match = voices.find((v) => v.lang.startsWith(langCode) && v.name.includes('Google'));
   if (match) return match;
@@ -51,16 +53,23 @@ function pickVoice(voices, langCode) {
   if (match) return match;
 
   // 3. Prefix match ('hi' for 'hi-IN')
-  const prefix = langCode.split('-')[0];
   match = voices.find((v) => v.lang.startsWith(prefix));
   if (match) return match;
 
-  // 4. Smart fallback: Marathi uses Devanagari, so Hindi TTS can read it perfectly
-  if (prefix === 'mr') {
+  // 4. Smart fallback for languages whose voices are rarely installed in browsers:
+  //    Marathi uses Devanagari → Hindi TTS reads it well.
+  //    Tamil and Bengali rarely have OS voices → fall back to Hindi (closest Indian language available).
+  if (['mr', 'ta', 'bn'].includes(prefix)) {
     const hiGoogle = voices.find((v) => v.lang.startsWith('hi') && v.name.includes('Google'));
-    return hiGoogle || voices.find((v) => v.lang.startsWith('hi')) || null;
+    if (hiGoogle) return hiGoogle;
+    const hiAny = voices.find((v) => v.lang.startsWith('hi'));
+    if (hiAny) return hiAny;
   }
-  
+
+  // 5. Last resort: any Indian English voice so speech still works
+  const enIn = voices.find((v) => v.lang === 'en-IN' || v.lang === 'en_IN');
+  if (enIn) return enIn;
+
   return null;
 }
 
@@ -165,14 +174,49 @@ export function useVoice({ language = 'hi', onTranscript, onEnd }) {
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      const errorMessages = {
-        'no-speech': 'कोई आवाज़ नहीं आई। दोबारा कोशिश करें।',
-        'audio-capture': 'Microphone access नहीं मिला।',
-        'not-allowed': 'Microphone की permission दें। Browser settings में जाएं।',
-        'network': 'Internet connection की जरूरत है।',
-        'aborted': null,
+
+      // Localized error messages per language
+      const errorMessagesByLang = {
+        hi: {
+          'no-speech': 'कोई आवाज़ नहीं आई। दोबारा कोशिश करें।',
+          'audio-capture': 'Microphone access नहीं मिला।',
+          'not-allowed': 'Microphone की permission दें।',
+          'network': 'Internet connection की जरूरत है।',
+          'language-not-supported': 'यह भाषा voice input के लिए उपलब्ध नहीं है।',
+        },
+        mr: {
+          'no-speech': 'कोणताही आवाज आला नाही। पुन्हा प्रयत्न करा।',
+          'audio-capture': 'Microphone access मिळाला नाही।',
+          'not-allowed': 'Microphone ची permission द्या।',
+          'network': 'Internet connection आवश्यक आहे।',
+          'language-not-supported': 'Voice input साठी ही भाषा उपलब्ध नाही।',
+        },
+        ta: {
+          'no-speech': 'எந்த குரலும் கேட்கவில்லை. மீண்டும் முயற்சிக்கவும்。',
+          'audio-capture': 'Microphone அணுக முடியவில்லை。',
+          'not-allowed': 'Microphone அனுமதி கொடுங்கள்。',
+          'network': 'Internet இணைப்பு தேவை।',
+          'language-not-supported': 'இந்த மொழியில் voice input கிடைக்கவில்லை。 Hindi/English try செய்யுங்கள்。',
+        },
+        bn: {
+          'no-speech': 'কোনো আওয়াজ পাওয়া যায়নি। আবার চেষ্টা করুন।',
+          'audio-capture': 'Microphone access পাওয়া যায়নি।',
+          'not-allowed': 'Microphone-এর অনুমতি দিন।',
+          'network': 'Internet সংযোগ প্রয়োজন।',
+          'language-not-supported': 'এই ভাষায় voice input পাওয়া যাচ্ছে না। Hindi/English ব্যবহার করুন।',
+        },
+        en: {
+          'no-speech': 'No speech detected. Please try again.',
+          'audio-capture': 'Microphone not found.',
+          'not-allowed': 'Please grant microphone permission.',
+          'network': 'Internet connection required.',
+          'language-not-supported': 'Voice input not supported for this language.',
+        },
       };
-      const msg = errorMessages[event.error];
+
+      const langKey = (langCodeRef.current || 'hi-IN').split('-')[0];
+      const messages = errorMessagesByLang[langKey] || errorMessagesByLang['hi'];
+      const msg = messages[event.error] ?? null;
       if (msg) setError(msg);
       setIsListening(false);
     };

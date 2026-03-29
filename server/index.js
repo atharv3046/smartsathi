@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
+const OpenAI = require('openai');
 
 dotenv.config();
 
@@ -16,6 +17,56 @@ app.use(express.json());
 
 // Initialize Gemini Client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Initialize OpenAI Client for fallback
+const openaiClient = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+
+// ── Language-aware user-facing messages ────────────────────────────────────
+const LANG_ERRORS = {
+  hi: {
+    quotaErr:    'AI अभी बहुत व्यस्त है। 1 मिनट बाद दोबारा कोशिश करें। 🙏',
+    genericErr:  'AI से बात करने में समस्या हुई। कृपया दोबारा कोशिश करें।',
+    demoChat:    'नमस्ते! मैं अभी \'Demo Mode\' में हूँ। AI API की सीमा खतम हो गई है। कृपया 1 मिनट बाद पुनः प्रयास करें। 🙏',
+    scamErr:     'संदेश की जाँच करने में समस्या हुई। कृपया दोबारा कोशिश करें।',
+    vgeErr:      'Screenshot analyze करने में समस्या हुई। कृपया दोबारा कोशिश करें।',
+  },
+  mr: {
+    quotaErr:    'AI सध्या खूप व्यस्त आहे। 1 मिनिटानंतर पुन्हा प्रयत्न करा। 🙏',
+    genericErr:  'AI शी संपर्क साधन्यात समस्या आली। कृपया पुन्हा प्रयत्न करा।',
+    demoChat:    'नमस्कार! मी सध्या Demo Mode मध्ये आहे। API सीमा संपली। कृपया 1 मिनिटानंतर पुन्हा प्रयत्न करा। 🙏',
+    scamErr:     'message तपासणीत समस्या आली। कृपया पुन्हा प्रयत्न करा।',
+    vgeErr:      'Screenshot analyze करण्यात समस्या आली। कृपया पुन्हा प्रयत्न करा।',
+  },
+  ta: {
+    quotaErr:    'AI ଇப்போது மிகவும் பரப்புவாசியாக உள்ளது. 1 நிமிடத்திற்கு பிறகு மீண்டும் முயற்சிக்கவும். 🙏',
+    genericErr:  'AIயுடன் தொடர்புகொள்ளவதில் சிக்கல். மீண்டும் முயற்சிக்கவும்.',
+    demoChat:    'வணக்கம்! Demo Mode-ல் உள்ளேன். API வரம்பு தீர்நது. 1 நிமிடத்திற்கு பிறகு மீண்டும் முயற்சிக்கவும். 🙏',
+    scamErr:     'சரிபார்ப்பில் சிக்கல். மீண்டும் முயற்சிக்கவும்.',
+    vgeErr:      'Screenshot பகுப்பாய்வில் சிக்கல். மீண்டும் முயற்சிக்கவும்.',
+  },
+  bn: {
+    quotaErr:    'AI এখন অনেক ব্যস্ত। 1 মিনিট পরে আবার চেষ্টা করুন। 🙏',
+    genericErr:  'AI-এর সাথে যোগাযোগে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
+    demoChat:    'নমস্কার! আমি Demo Mode-এ আছি। API সীমা শেষ হয়েছে। 1 মিনিট পরে আবার চেষ্টা করুন। 🙏',
+    scamErr:     'বার্তা যাচাইয়ে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
+    vgeErr:      'Screenshot বিশ্লেষণে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
+  },
+  en: {
+    quotaErr:    'AI is busy right now. Please try again in 1 minute. 🙏',
+    genericErr:  'There was a problem contacting AI. Please try again.',
+    demoChat:    'Hello! I am in Demo Mode as the AI API quota is exhausted. Please try again in 1 minute. 🙏',
+    scamErr:     'There was a problem checking the message. Please try again.',
+    vgeErr:      'There was a problem analyzing the screenshot. Please try again.',
+  },
+};
+function getLE(lang) { return LANG_ERRORS[lang] || LANG_ERRORS.hi; }
+
+const safetySettings = [
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE }
+];
 
 // Models to try in order if rate limit (429 / quota) is hit
 const FALLBACK_MODELS = [
@@ -121,7 +172,22 @@ ${langInstruction}
 Official Guidelines Reference (USE THESE — never fabricate rules):
 ${NPCI_RBI_RULES}
 
-IMPORTANT: When discussing safety, fraud, or legal matters — ONLY cite the above official NPCI/RBI guidelines. Never make up rules or statistics.`;
+IMPORTANT: When discussing safety, fraud, or legal matters — ONLY cite the above official NPCI/RBI guidelines. Never make up rules or statistics.
+
+VIDEO SUGGESTIONS:
+At the end of every substantive response (not one-liners or simple greetings), add exactly one line in this format:
+[VIDEO: <3-6 word YouTube search query relevant to what you just explained>]
+Examples by language:
+  Hindi:   [VIDEO: UPI PIN kaise banaye hindi]
+  Marathi: [VIDEO: UPI payment marathi tutorial]
+  Tamil:   [VIDEO: UPI payment tamil guide]
+  Bengali: [VIDEO: UPI payment bangla tutorial]
+  English: [VIDEO: how to use UPI safely India]
+Rules:
+- Only include [VIDEO: ...] if a tutorial video would genuinely help the user understand better.
+- Skip it for one-sentence answers, greetings, or simple confirmation replies.
+- Do NOT add more than one [VIDEO: ...] per response.
+- The query must be in the user's language and include the language name for better search relevance.`;
 }
 
 // ─── Health Check ────────────────────────────────────────────────────────────
@@ -162,24 +228,59 @@ app.post('/api/chat', async (req, res) => {
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
-          systemInstruction: systemPrompt,
+          safetySettings,
         });
 
-        const chat = model.startChat({ history });
+        const augmentedHistory = [
+          { role: 'user', parts: [{ text: `SYSTEM INSTRUCTIONS:\n${systemPrompt}\n\nConfirm you understand.` }] },
+          { role: 'model', parts: [{ text: `Understood.` }] },
+          ...history
+        ];
+
+        const chat = model.startChat({ history: augmentedHistory });
         result = await chat.sendMessage(message);
         break; // Success
       } catch (err) {
         const isRateLimit = err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('retry');
         if (isRateLimit) {
-          console.warn(`[RateLimit] Chat (${modelName}) hit quota. Trying next...`);
+          console.warn(`[RateLimit] Chat (${modelName}) hit quota. Trying next model...`);
           lastErr = err;
-          continue;
+          continue; // try next model — don't give up on first 429
         }
-        throw err;
+        console.warn(`[Chat] (${modelName}) failed: ${err.message?.slice(0, 120)}`);
+        lastErr = err;
+        continue;
       }
     }
 
-    if (!result) throw lastErr || new Error('All models exhausted');
+    if (!result) {
+      if (lastErr && openaiClient) {
+        console.log(`[Fallback] Using OpenAI for /api/chat due to Gemini failure.`);
+        try {
+          const openAiHistory = messageHistory.map(msg => ({
+            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            content: msg.content
+          }));
+          const response = await openaiClient.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...openAiHistory,
+              { role: 'user', content: message }
+            ]
+          });
+          const reply = response.choices[0].message.content;
+          return res.json({ reply });
+        } catch (openaiErr) {
+          console.error('[OpenAI Fallback] Chat Error:', openaiErr.message);
+          console.log('[Mock Fallback] Returning static chat response.');
+          return res.json({ reply: getLE(language).demoChat });
+        }
+      } else {
+        console.log('[Mock Fallback] Returning static chat response.');
+        return res.json({ reply: getLE(language).demoChat });
+      }
+    }
 
     const reply = result.response.text();
 
@@ -188,9 +289,7 @@ app.post('/api/chat', async (req, res) => {
     console.error('Gemini API Error:', error.message);
     const isRateLimit = error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('retry');
     res.status(500).json({
-      error: isRateLimit
-        ? 'AI अभी बहुत व्यस्त है। 1 मिनट बाद दोबारा कोशिश करें। 🙏'
-        : 'AI से बात करने में समस्या हुई। कृपया दोबारा कोशिश करें।',
+      error: isRateLimit ? getLE(language).quotaErr : getLE(language).genericErr,
     });
   }
 });
@@ -249,7 +348,7 @@ app.get('/api/scam-news', async (req, res) => {
 
     for (const modelName of FALLBACK_MODELS) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const model = genAI.getGenerativeModel({ model: modelName, safetySettings });
         result = await model.generateContent(
           `Today's date: ${new Date().toLocaleDateString('en-IN')}\nSearch for recent news about: "${query}"\n\n${prompt}`
         );
@@ -257,15 +356,46 @@ app.get('/api/scam-news', async (req, res) => {
       } catch (err) {
         const isRateLimit = err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('retry');
         if (isRateLimit) {
-          console.warn(`[RateLimit] News (${modelName}) hit quota.`);
+          console.warn(`[RateLimit] News (${modelName}) hit quota. Trying next model...`);
           lastErr = err;
           continue;
         }
-        throw err;
+        console.warn(`[News] (${modelName}) failed: ${err.message?.slice(0, 120)}`);
+        lastErr = err;
+        continue;
       }
     }
 
-    if (!result) throw lastErr || new Error('All models exhausted');
+    if (!result) {
+      if (lastErr && openaiClient) {
+        console.log(`[Fallback] Using OpenAI for /api/scam-news due to Gemini failure.`);
+        try {
+          const response = await openaiClient.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: `Today's date: ${new Date().toLocaleDateString('en-IN')}\nSearch for recent news about: "${query}"\n\n${prompt}` }
+            ]
+          });
+          const newsText = response.choices[0].message.content;
+          const responseData = {
+            news: newsText,
+            sources: [], // OpenAI chat doesn't natively return grounding URIs
+            generatedAt: new Date().toISOString(),
+          };
+          newsCache[lang] = { timestamp: Date.now(), data: responseData };
+          return res.json(responseData);
+        } catch (openaiErr) {
+          console.error('[OpenAI Fallback] News Error:', openaiErr.message);
+          const mockNewsData = { news: `📌 **UPI Fake Link Scam**: Fraudsters send links to "receive" money. (Never enter PIN to get money)\n📌 **KYC Update App**: Scammers send SMS asking to download an app for KYC. (Never download unknown apps)\n\n*(Info: The AI API limit is reached today, showing demo news)*`, sources: [], generatedAt: new Date().toISOString() };
+          newsCache[lang] = { timestamp: Date.now(), data: mockNewsData };
+          return res.json(mockNewsData);
+        }
+      } else {
+        const mockNewsData = { news: `📌 **UPI Fake Link Scam**: Fraudsters send links to "receive" money. (Never enter PIN to get money)\n📌 **KYC Update App**: Scammers send SMS asking to download an app for KYC. (Never download unknown apps)\n\n*(Info: The AI API limit is reached today, showing demo news)*`, sources: [], generatedAt: new Date().toISOString() };
+        newsCache[lang] = { timestamp: Date.now(), data: mockNewsData };
+        return res.json(mockNewsData);
+      }
+    }
 
     const newsText = result.response.text();
 
@@ -337,34 +467,78 @@ Respond ONLY with a valid JSON object in this exact format (no extra text, no ma
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
-          systemInstruction: scamSystemPrompt,
+          safetySettings,
           generationConfig: {
             responseMimeType: 'application/json',
             temperature: 0.2,
           },
         });
-        result = await model.generateContent(`Message to analyze:\n"${text}"`);
+        result = await model.generateContent(`SYSTEM INSTRUCTIONS:\n${scamSystemPrompt}\n\nMessage to analyze:\n"${text}"`);
         break;
       } catch (err) {
         const isRateLimit = err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('retry');
         if (isRateLimit) {
-          console.warn(`[RateLimit] Detect (${modelName}) hit quota.`);
+          console.warn(`[RateLimit] Detect (${modelName}) hit quota. Trying next model...`);
           lastErr = err;
           continue;
         }
-        throw err;
+        console.warn(`[Detect] (${modelName}) failed: ${err.message?.slice(0, 120)}`);
+        lastErr = err;
+        continue;
       }
     }
 
-    if (!result) throw lastErr || new Error('All models exhausted');
+    if (!result) {
+      if (lastErr && openaiClient) {
+        console.log(`[Fallback] Using OpenAI for /api/detect-scam due to Gemini failure.`);
+        try {
+          const response = await openaiClient.chat.completions.create({
+            model: 'gpt-4o-mini',
+            response_format: { type: 'json_object' },
+            temperature: 0.2,
+            messages: [
+              { role: 'system', content: scamSystemPrompt },
+              { role: 'user', content: `Message to analyze:\n"${text}"` }
+            ]
+          });
+          const rawText = response.choices[0].message.content;
+          let parsed;
+          try {
+            parsed = JSON.parse(rawText);
+          } catch {
+            const match = rawText.match(/\{[\s\S]*\}/);
+            if (match) parsed = JSON.parse(match[0]);
+            else throw new Error('Could not parse OpenAI response as JSON');
+          }
+          return res.json(parsed);
+        } catch (openaiErr) {
+          console.error('[OpenAI Fallback] Detect Scam Error:', openaiErr.message);
+          return res.json({ isScam: true, confidence: "medium", reason_hi: "API की सीमा खत्म हो गई है। सुरक्षा के लिए, किसी भी अनजान लिंक या OTP वाले मैसेज को हमेशा स्कैम (धोखाधड़ी) ही मानें। (This is a Demo Mode response)", warning_signs: ["Unverified sender"], advice_hi: "लिंक पर क्लिक न करें।", official_rule: "Demo Mode Active" });
+        }
+      } else {
+        return res.json({ isScam: true, confidence: "medium", reason_hi: "API की सीमा खत्म हो गई है। सुरक्षा के लिए, किसी भी अनजान लिंक या OTP वाले मैसेज को हमेशा स्कैम (धोखाधड़ी) ही मानें। (This is a Demo Mode response)", warning_signs: ["Unverified sender"], advice_hi: "लिंक पर क्लिक न करें।", official_rule: "Demo Mode Active" });
+      }
+    }
 
     const rawText = result.response.text();
-    const parsed = JSON.parse(rawText);
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { parsed = JSON.parse(match[0]); }
+        catch { throw new Error('Could not parse Gemini response as JSON'); }
+      } else {
+        throw new Error('Could not parse Gemini response as JSON');
+      }
+    }
     res.json(parsed);
   } catch (error) {
     console.error('Scam Detection Error:', error.message);
+    const isRateLimit = error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('retry');
     res.status(500).json({
-      error: 'संदेश की जाँच करने में समस्या हुई। कृपया दोबारा कोशिश करें।',
+      error: isRateLimit ? getLE(language).quotaErr : getLE(language).scamErr,
     });
   }
 });
@@ -438,6 +612,7 @@ OUTPUT SCHEMA (return ONLY this JSON):
       "instruction_english": "First, enter your UPI PIN here",
       "instruction_marathi": "प्रथम येथे आपला UPI PIN टाका",
       "instruction_tamil": "முதலில் உங்கள் UPI PIN ஐ இங்கே உள்ளிடவும்",
+      "instruction_bengali": "প্রথমে এখানে আপনার UPI PIN দিন",
       "target_element": "UPI PIN input field",
       "action": "type",
       "is_warning": false,
@@ -474,8 +649,7 @@ STRICT RULES:
     const VISION_MODELS = [
       { name: 'gemini-2.5-flash',      jsonMode: true  },
       { name: 'gemini-2.0-flash',      jsonMode: true  },
-      { name: 'gemini-1.5-flash',      jsonMode: false },
-      { name: 'gemini-1.5-flash-8b',   jsonMode: false },
+      { name: 'gemini-flash-latest',   jsonMode: true  },
     ];
 
     for (const { name: modelName, jsonMode } of VISION_MODELS) {
@@ -487,9 +661,12 @@ STRICT RULES:
 
         const model = genAI.getGenerativeModel({
           model: modelName,
-          systemInstruction: vgeSystemPrompt,
+          safetySettings,
           generationConfig,
         });
+
+        const promptText = `SYSTEM INSTRUCTIONS:\n${vgeSystemPrompt}\n\n` + 
+          (question ? `User's question: "${question}"\n\nAnalyze this screenshot and return the JSON guidance object.` : 'Analyze this screenshot and return the JSON guidance object.');
 
         result = await model.generateContent([
           {
@@ -498,22 +675,59 @@ STRICT RULES:
               mimeType,
             },
           },
-          {
-            text: question
-              ? `User's question: "${question}"\n\nAnalyze this screenshot and return the JSON guidance object.`
-              : 'Analyze this screenshot and return the JSON guidance object.',
-          },
+          { text: promptText },
         ]);
         console.log(`[VGE] Success with model: ${modelName}`);
         break;
       } catch (err) {
+        const isRateLimit = err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('retry');
+        if (isRateLimit) {
+          console.warn(`[RateLimit] VGE (${modelName}) hit quota. Trying next model...`);
+          lastErr = err;
+          continue; // try next model — don't give up on first 429
+        }
         console.warn(`[VGE] (${modelName}) failed: ${err.message?.slice(0, 120)}`);
         lastErr = err;
-        continue; // always try next model
+        continue; // try next model if it's not a rate limit
       }
     }
 
-    if (!result) throw lastErr || new Error('All vision models exhausted');
+    if (!result) {
+      if (lastErr && openaiClient) {
+        console.log(`[Fallback] Using OpenAI for /api/analyze-screenshot due to Gemini failure.`);
+        try {
+          const response = await openaiClient.chat.completions.create({
+            model: 'gpt-4o-mini',
+            response_format: { type: 'json_object' },
+            temperature: 0.2,
+            messages: [
+              { role: 'system', content: vgeSystemPrompt },
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: question ? `User's question: "${question}"\n\nAnalyze this screenshot and return the JSON guidance object.` : 'Analyze this screenshot and return the JSON guidance object.' },
+                  { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+                ]
+              }
+            ]
+          });
+          const rawText = response.choices[0].message.content;
+          let parsed;
+          try { parsed = JSON.parse(rawText); }
+          catch {
+            const match = rawText.match(/\{[\s\S]*\}/);
+            if (match) parsed = JSON.parse(match[0]);
+            else throw new Error('Could not parse OpenAI vision response as JSON');
+          }
+          return res.json(parsed);
+        } catch (openaiErr) {
+          console.error('[OpenAI Fallback] VGE Error:', openaiErr.message);
+          return res.json({ language: language, ocr_text: "API Rate limits hit.", ui_elements: [], user_intent: "Need help (Demo Mode)", annotations: [], steps: [{ step_number: 1, instruction_hindi: "स्मार्ट साथी का API सर्वर अभी व्यस्त है (Rate Limit)। मैं इस स्क्रीनशॉट को नहीं पढ़ पा रहा हूँ।", instruction_english: "API limit reached. Cannot read screenshot.", target_element: "Screen", action: "ignore", is_warning: true, warning_hindi: "कृपया 1 मिनट बाद प्रयास करें।" }], safety_alert: { triggered: false }, voice_script_hindi: "माफ़ करें, अभी मेरा सिस्टम व्यस्त है।", confidence: "low", fallback_message_hindi: "API सीमा (Quota) ख़त्म हो गई है। यह एक डेमो उत्तर है।" });
+        }
+      } else {
+        return res.json({ language: language, ocr_text: "API Rate limits hit.", ui_elements: [], user_intent: "Need help (Demo Mode)", annotations: [], steps: [{ step_number: 1, instruction_hindi: "स्मार्ट साथी का API सर्वर अभी व्यस्त है (Rate Limit)। मैं इस स्क्रीनशॉट को नहीं पढ़ पा रहा हूँ।", instruction_english: "API limit reached. Cannot read screenshot.", target_element: "Screen", action: "ignore", is_warning: true, warning_hindi: "कृपया 1 मिनट बाद प्रयास करें।" }], safety_alert: { triggered: false }, voice_script_hindi: "माफ़ करें, अभी मेरा सिस्टम व्यस्त है।", confidence: "low", fallback_message_hindi: "API सीमा (Quota) ख़त्म हो गई है। यह एक डेमो उत्तर है।" });
+      }
+    }
 
     const rawText = result.response.text();
     let parsed;
@@ -538,10 +752,60 @@ STRICT RULES:
       error.message?.includes('quota') ||
       error.message?.includes('retry');
     res.status(500).json({
-      error: isRateLimit
-        ? 'AI अभी व्यस्त है। 1 मिनट बाद दोबारा कोशिश करें। 🙏'
-        : 'Screenshot analyze करने में समस्या हुई। कृपया दोबारा कोशिश करें।',
+      error: isRateLimit ? getLE(language).quotaErr : getLE(language).vgeErr,
     });
+  }
+});
+// ─── YouTube Video Search ─────────────────────────────────────────────────────
+// Maps our app language codes to YouTube's relevanceLanguage codes
+const YT_LANG_MAP = { hi: 'hi', mr: 'hi', ta: 'ta', bn: 'bn', en: 'en' };
+
+app.get('/api/youtube', async (req, res) => {
+  const { q, lang = 'hi' } = req.query;
+  if (!q) return res.status(400).json({ error: 'Query required' });
+
+  // Gracefully fail if API key not configured
+  if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
+    console.warn('[YouTube] API key not configured — skipping video suggestion.');
+    return res.json({ video: null });
+  }
+
+  try {
+    const relevanceLang = YT_LANG_MAP[lang] || 'hi';
+    const url = new URL('https://www.googleapis.com/youtube/v3/search');
+    url.searchParams.set('part', 'snippet');
+    url.searchParams.set('q', q);
+    url.searchParams.set('type', 'video');
+    url.searchParams.set('videoDuration', 'medium');      // 4–20 min tutorials
+    url.searchParams.set('relevanceLanguage', relevanceLang);
+    url.searchParams.set('regionCode', 'IN');
+    url.searchParams.set('maxResults', '3');              // fetch 3, pick first valid
+    url.searchParams.set('safeSearch', 'strict');
+    url.searchParams.set('key', process.env.YOUTUBE_API_KEY);
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('[YouTube API]', data.error.message);
+      return res.json({ video: null });
+    }
+
+    const item = data.items?.find(i => i.id?.videoId); // pick first with a valid videoId
+    if (!item) return res.json({ video: null });
+
+    res.json({
+      video: {
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
+        channel: item.snippet.channelTitle,
+        publishedAt: item.snippet.publishedAt,
+      }
+    });
+  } catch (err) {
+    console.error('[YouTube] Fetch error:', err.message);
+    res.json({ video: null });   // never crash chat because of YouTube
   }
 });
 

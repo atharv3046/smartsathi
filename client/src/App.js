@@ -73,42 +73,50 @@ export default function App() {
   return (
     <div className="app">
       {view === 'welcome' && (
-        <WelcomeScreen
-          onStartModule={startModule}
-          onScamChecker={goToScamChecker}
-          onScreenshotAnalyzer={goToScreenshotAnalyzer}
-          language={language}
-          onLanguageSwitch={handleLanguageSwitch}
-        />
+        <div key="welcome" className="page-fade" style={{ display: 'contents' }}>
+          <WelcomeScreen
+            onStartModule={startModule}
+            onScamChecker={goToScamChecker}
+            onScreenshotAnalyzer={goToScreenshotAnalyzer}
+            language={language}
+            onLanguageSwitch={handleLanguageSwitch}
+          />
+        </div>
       )}
       {view === 'chat' && (
-        <ChatWindow
-          module={activeModule}
-          messageHistory={messageHistory}
-          setMessageHistory={setMessageHistory}
-          confusionLevel={confusionLevel}
-          onConfusion={handleConfusion}
-          onModuleSwitch={handleModuleSwitch}
-          onBack={goHome}
-          onScreenshotAnalyzer={goToScreenshotAnalyzer}
-          language={language}
-          onLanguageSwitch={handleLanguageSwitch}
-        />
+        <div key="chat" className="page-fade" style={{ display: 'contents' }}>
+          <ChatWindow
+            module={activeModule}
+            messageHistory={messageHistory}
+            setMessageHistory={setMessageHistory}
+            confusionLevel={confusionLevel}
+            onConfusion={handleConfusion}
+            onModuleSwitch={handleModuleSwitch}
+            onBack={goHome}
+            onScreenshotAnalyzer={goToScreenshotAnalyzer}
+            language={language}
+            onLanguageSwitch={handleLanguageSwitch}
+          />
+        </div>
       )}
       {view === 'scam-checker' && (
-        <ScamChecker
-          onBack={goHome}
-          language={language}
-          onLanguageSwitch={handleLanguageSwitch}
-        />
+        <div key="scam" className="page-fade" style={{ display: 'contents' }}>
+          <ScamChecker
+            onBack={goHome}
+            language={language}
+            onLanguageSwitch={handleLanguageSwitch}
+          />
+        </div>
       )}
       {view === 'screenshot' && (
-        <ScreenshotAnalyzer
-          onBack={goHome}
-          language={language}
-          onLanguageSwitch={handleLanguageSwitch}
-          messageHistory={messageHistory}
-        />
+        <div key="screenshot" className="page-fade" style={{ display: 'contents' }}>
+          <ScreenshotAnalyzer
+            onBack={goHome}
+            language={language}
+            onLanguageSwitch={handleLanguageSwitch}
+            messageHistory={messageHistory}
+          />
+        </div>
       )}
     </div>
   );

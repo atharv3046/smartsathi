@@ -1,39 +1,75 @@
 import React, { useState } from 'react';
+import VideoCard from './VideoCard';
 
+// ─── Suggestion chip — standalone animated component ──────────────────────
+function SuggestionChip({ text, onClick, index }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      className={`chip-animated chip-shimmer`}
+      style={{
+        animationDelay: `${index * 120}ms`,
+        marginTop: 6,
+        marginBottom: 2,
+        padding: '7px 14px',
+        background: hovered ? 'var(--primary)' : 'var(--bg-card)',
+        border: `1.5px solid ${hovered ? 'var(--primary)' : 'var(--border-light)'}`,
+        borderRadius: 999,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0,
+        color: hovered ? '#fff' : 'var(--primary)',
+        fontSize: 13,
+        fontWeight: 600,
+        fontFamily: "'Noto Sans Devanagari', 'Inter', sans-serif",
+        transition: 'background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.18s ease, box-shadow 0.18s ease',
+        transform: hovered ? 'scale(1.03)' : 'scale(1)',
+        boxShadow: hovered ? '0 4px 14px rgba(74,103,65,0.25)' : '0 1px 4px rgba(0,0,0,0.04)',
+        willChange: 'transform',
+      }}
+      onClick={() => onClick(text)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Green pulse dot on left */}
+      <span className="chip-dot" style={{ flexShrink: 0 }} />
+
+      {/* Chip label */}
+      <span>• {text}</span>
+
+      {/* Arrow — appears on hover */}
+      <span
+        className="chip-arrow"
+        style={{
+          opacity: hovered ? 1 : 0,
+          transform: hovered ? 'translateX(0)' : 'translateX(-4px)',
+          transition: 'opacity 0.18s ease, transform 0.18s ease',
+          marginLeft: hovered ? 6 : 0,
+          fontSize: 11,
+          color: '#fff',
+        }}
+      >
+        →
+      </span>
+    </div>
+  );
+}
+
+// ─── Content formatter ────────────────────────────────────────────────────
 function formatContent(text, onSuggestionClick, isGreeting) {
-  return text.split('\n').map((line, i) => {
-    // If it's the greeting and a bullet point, render as a clickable suggestion
+  const lines = text.split('\n');
+  let chipIndex = 0;
+
+  return lines.map((line, i) => {
     if (isGreeting && line.trim().startsWith('•') && onSuggestionClick) {
+      const chipText = line.replace('•', '').trim();
+      const idx = chipIndex++;
       return (
         <React.Fragment key={i}>
-          <div
-            style={{
-              marginTop: 6,
-              marginBottom: 2,
-              padding: '6px 14px',
-              background: 'rgba(249,115,22,0.12)',
-              border: '1px solid rgba(249,115,22,0.3)',
-              borderRadius: 16,
-              cursor: 'pointer',
-              display: 'inline-block',
-              color: 'var(--saffron)',
-              fontSize: 13,
-              fontWeight: 600,
-              transition: 'all 0.15s ease',
-            }}
-            onClick={() => onSuggestionClick(line.replace('•', '').trim())}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(249,115,22,0.22)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(249,115,22,0.12)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            {line.trim()}
-          </div>
-          {i < text.split('\n').length - 1 && <br />}
+          <SuggestionChip text={chipText} onClick={onSuggestionClick} index={idx} />
+          {i < lines.length - 1 && <br />}
         </React.Fragment>
       );
     }
@@ -48,88 +84,55 @@ function formatContent(text, onSuggestionClick, isGreeting) {
             part
           )
         )}
-        {i < text.split('\n').length - 1 && <br />}
+        {i < lines.length - 1 && <br />}
       </React.Fragment>
     );
   });
 }
 
 const styles = {
-  wrapper: {
-    display: 'flex',
-    gap: 10,
-    maxWidth: 580,
-    animation: 'slideIn 0.3s ease forwards',
-  },
   avatarUser: {
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #F97316, #C2410C)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 14,
-    flexShrink: 0,
-    alignSelf: 'flex-end',
+    width: 32, height: 32, borderRadius: '50%',
+    background: 'var(--secondary)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 14, flexShrink: 0, alignSelf: 'flex-end', color: '#fff',
   },
   avatarBot: {
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #1E293B, #334155)',
-    border: '1.5px solid rgba(249,115,22,0.4)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 14,
-    flexShrink: 0,
-    alignSelf: 'flex-end',
+    width: 32, height: 32, borderRadius: '50%',
+    background: 'var(--bg-card)', border: '1.5px solid var(--primary-light)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 14, flexShrink: 0, alignSelf: 'flex-end',
   },
   bubbleUser: {
-    background: 'linear-gradient(135deg, #F97316, #EA580C)',
-    color: '#fff',
-    borderRadius: '18px 18px 4px 18px',
-    padding: '10px 16px',
-    maxWidth: '100%',
-    fontSize: 14,
-    lineHeight: 1.6,
+    background: 'var(--primary)', color: '#fff',
+    borderRadius: '18px 18px 4px 18px', padding: '10px 16px', maxWidth: '100%',
+    fontSize: 14, lineHeight: 1.6,
     fontFamily: "'Noto Sans Devanagari', sans-serif",
-    wordBreak: 'break-word',
-    boxShadow: '0 2px 12px rgba(249,115,22,0.3)',
+    wordBreak: 'break-word', boxShadow: '0 2px 8px rgba(74,103,65,0.2)',
   },
   bubbleBot: {
-    background: 'var(--navy-card)',
-    border: '1px solid var(--navy-border)',
-    color: 'var(--text-primary)',
-    borderRadius: '18px 18px 18px 4px',
-    padding: '10px 16px',
-    maxWidth: '100%',
-    fontSize: 14,
-    lineHeight: 1.7,
+    background: 'var(--bg-card)', border: '1px solid var(--border-card)',
+    color: 'var(--text-primary)', borderRadius: '18px 18px 18px 4px',
+    padding: '10px 16px', maxWidth: '100%', fontSize: 14, lineHeight: 1.7,
     fontFamily: "'Noto Sans Devanagari', sans-serif",
-    wordBreak: 'break-word',
+    wordBreak: 'break-word', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
   },
-  timeStamp: {
-    fontSize: 10,
-    color: 'var(--text-muted)',
-    marginTop: 4,
-  },
+  timeStamp: { fontSize: 10, color: 'var(--text-muted)', marginTop: 4 },
 };
 
-export default function ChatBubble({ role, content, time, onSpeak, onSuggestionClick, isGreeting }) {
+export default function ChatBubble({ role, content, time, onSpeak, onSuggestionClick, isGreeting, video }) {
   const isUser = role === 'user';
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
+      className={isUser ? 'bubble-slide-right' : 'bubble-slide-left'}
       style={{
         display: 'flex',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
-        animation: 'slideIn 0.3s ease forwards',
       }}
     >
-      <div style={{ ...styles.wrapper, flexDirection: isUser ? 'row-reverse' : 'row' }}>
+      <div style={{ display: 'flex', gap: 10, maxWidth: 580, flexDirection: isUser ? 'row-reverse' : 'row' }}>
         <div style={isUser ? styles.avatarUser : styles.avatarBot}>
           {isUser ? '👤' : '🤖'}
         </div>
@@ -141,24 +144,22 @@ export default function ChatBubble({ role, content, time, onSpeak, onSuggestionC
           <div style={isUser ? styles.bubbleUser : styles.bubbleBot}>
             {isUser ? content : formatContent(content, onSuggestionClick, isGreeting)}
           </div>
+
+          {/* Video card — only on assistant messages */}
+          {!isUser && video && <VideoCard query={typeof video === 'string' ? video : video?.query || video?.id} />}
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
             {time && <span style={styles.timeStamp}>{time}</span>}
-            {/* Replay speaker button — only on bot messages */}
-            {!isUser && onSpeak && (hovered) && (
+            {!isUser && onSpeak && hovered && (
               <button
                 onClick={onSpeak}
                 title="दोबारा सुनें"
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
-                  padding: '0 4px',
-                  lineHeight: 1,
-                  transition: 'color 0.15s ease',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  fontSize: 12, color: 'var(--text-muted)', padding: '0 4px',
+                  lineHeight: 1, transition: 'color 0.15s ease',
                 }}
-                onMouseEnter={e => e.target.style.color = '#60A5FA'}
+                onMouseEnter={e => e.target.style.color = 'var(--primary)'}
                 onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
               >
                 🔊
@@ -170,4 +171,3 @@ export default function ChatBubble({ role, content, time, onSpeak, onSuggestionC
     </div>
   );
 }
-
